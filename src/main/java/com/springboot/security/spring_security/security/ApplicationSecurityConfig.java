@@ -1,5 +1,7 @@
 package com.springboot.security.spring_security.security;
 
+import java.util.concurrent.TimeUnit;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,6 +15,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
 @EnableWebSecurity
@@ -26,41 +29,34 @@ public class ApplicationSecurityConfig extends WebSecurityConfigurerAdapter{
 		this.bPasswordEncrypt = bPasswordEncrypt;
 	}
 
-	
-	
-	//This method implementation have authority without using @PreAuthority annotation in controller level method and EnableGlobalMethodSecurity
-	/*@Override
-	protected void configure(HttpSecurity http) throws Exception {
-		http
-		.csrf().disable()
-		.authorizeRequests()
-		.antMatchers("/","/index","/css/*","/js/*").permitAll()
-		.antMatchers("/api/**").hasRole(ApplicationRoles.ADMIN.name())
-				  .antMatchers("/management/api/**").hasAnyRole(ApplicationRoles.ADMIN.name(), ApplicationRoles.ADMINTRAINEE.name())
-				  .antMatchers(HttpMethod.POST,"/management/api/v1/student-center/**").hasAuthority(ApplicationPermission.COURSE_WRITE.getPermission())
-				  .antMatchers(HttpMethod.DELETE,"/management/api/**").hasAuthority(ApplicationPermission.COURSE_WRITE.getPermission())
-				  .antMatchers(HttpMethod.PUT,"/management/api/**").hasAuthority(ApplicationPermission.COURSE_WRITE.getPermission())
-				 
-		.anyRequest()
-		.authenticated()
-		.and()
-		.httpBasic();
-	}*/
-	
-	
-	//This method implementation have authority using @PreAuthority annotation in controller level method and EnableGlobalMethodSecurity
-
 	@Override
 	protected void configure(HttpSecurity http) throws Exception {
 		http
 		.csrf().disable()
 		.authorizeRequests()
-		.antMatchers("/","/index","/css/*","/js/*").permitAll()
-		.antMatchers("/api/**").hasRole(ApplicationRoles.ADMIN.name())
-		.anyRequest()
-		.authenticated()
+			.antMatchers("/","/index","/css/*","/js/*").permitAll()
+			.antMatchers("/api/**").hasRole(ApplicationRoles.ADMIN.name())
+			.anyRequest()
+			.authenticated()
 		.and()
-		.httpBasic();
+		.formLogin()
+			.loginPage("/login").permitAll()
+			.defaultSuccessUrl("/courses", true)
+			.passwordParameter("password")
+			.usernameParameter("username")
+		.and()
+		.rememberMe()
+			  .tokenValiditySeconds((int) TimeUnit.DAYS.toSeconds(10))
+			  .key("idontknowwhatisthis")
+			  .rememberMeParameter("remember-me")
+		.and()
+		.logout()
+			.logoutUrl("/logout")
+			.logoutRequestMatcher(new AntPathRequestMatcher("/logout", "GET"))
+			.deleteCookies("JSESSIONID","remember-me")
+			.clearAuthentication(true)
+			.invalidateHttpSession(true)
+			.logoutSuccessUrl("/login");
 	}
 
 	@Override
