@@ -18,9 +18,4 @@ public class TemplateController {
 		return "courses";
 	}
 	
-	@GetMapping("logout")
-	public String getLogoutView(){
-		return "logout";
-	}
-	
 }

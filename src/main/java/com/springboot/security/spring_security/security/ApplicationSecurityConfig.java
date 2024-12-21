@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -17,17 +19,27 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
+import com.springboot.security.spring_security.auth.StudentApplicationUser;
+import com.springboot.security.spring_security.auth.StudentApplicationUserService;
+
 @Configuration
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 public class ApplicationSecurityConfig extends WebSecurityConfigurerAdapter{
 
-	private  final PasswordEncoder bPasswordEncrypt;
+	private final  PasswordEncoder bPasswordEncrypt;
+	private final  UserDetailsService userDetailsService;
+	
+	
+	
 	
 	@Autowired
-	public ApplicationSecurityConfig(PasswordEncoder bPasswordEncrypt) {
+	public ApplicationSecurityConfig(PasswordEncoder bPasswordEncrypt,
+			UserDetailsService userDetailsService) {
 		this.bPasswordEncrypt = bPasswordEncrypt;
+		this.userDetailsService = userDetailsService;
 	}
+
 
 	@Override
 	protected void configure(HttpSecurity http) throws Exception {
@@ -53,39 +65,27 @@ public class ApplicationSecurityConfig extends WebSecurityConfigurerAdapter{
 		.logout()
 			.logoutUrl("/logout")
 			.logoutRequestMatcher(new AntPathRequestMatcher("/logout", "GET"))
-			.deleteCookies("JSESSIONID","remember-me")
 			.clearAuthentication(true)
 			.invalidateHttpSession(true)
-			.logoutSuccessUrl("/login");
+			.deleteCookies("JSESSIONID","remember-me")
+			.logoutSuccessUrl("/login");  
 	}
 
+	
+	
+	
 	@Override
-	@Bean
-	protected UserDetailsService userDetailsService(){
-		UserDetails manjeet= User.builder()
-		             .username("manjeet")
-		             .password(bPasswordEncrypt.encode("kumar"))
-		            // .roles(ApplicationRoles.ADMIN.name())
-		             .authorities(ApplicationRoles.STUDENT.getGrantedAuthorities())
-		             .build();
-		
-	   UserDetails anish=User.builder()
-			                 .username("anish")
-			                 .password(bPasswordEncrypt.encode("anish@123"))
-			                // .roles(ApplicationRoles.STUDENT.name())
-			                .authorities(ApplicationRoles.ADMIN.getGrantedAuthorities())
-			                 .build();
-	   
-	   UserDetails tom=User.builder()
-               .username("tom")
-               .password(bPasswordEncrypt.encode("tom@321"))
-              // .roles(ApplicationRoles.ADMINTRAINEE.name())
-               .authorities(ApplicationRoles.ADMINTRAINEE.getGrantedAuthorities())
-               .build();
-		
-		return new InMemoryUserDetailsManager(manjeet,anish,tom);
+	protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+		auth.authenticationProvider(getAuthenticationProvider());
 	}
 
+	@Bean
+    public DaoAuthenticationProvider getAuthenticationProvider() {
+		DaoAuthenticationProvider provider=new DaoAuthenticationProvider();
+		provider.setPasswordEncoder(bPasswordEncrypt);
+		provider.setUserDetailsService(userDetailsService);
+		return provider;
+}
 	
 	
 }
